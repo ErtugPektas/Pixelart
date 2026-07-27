@@ -1,0 +1,8 @@
+{
+  "appId": "com.pixelart.app",
+  "appName": "PixelArt",
+  "webDir": "out",
+  "server": {
+    "androidScheme": "https"
+  }
+}
