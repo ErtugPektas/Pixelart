@@ -26,7 +26,7 @@ export interface Client {
   created_at: string;
 }
 
-export type ProjectStatus = 'lead' | 'in_progress' | 'completed' | 'cancelled';
+export type ProjectStatus = 'lead' | 'in_progress' | 'completed' | 'cancelled' | 'archived';
 
 export interface Project {
   id: string;
@@ -38,6 +38,7 @@ export interface Project {
   currency: string;
   start_date: string;
   end_date?: string | null;
+  is_archived?: boolean;
   created_at: string;
   clients?: Client | null;
 }
@@ -146,7 +147,7 @@ export interface RecurringTransaction {
   clients?: Client | null;
 }
 
-export type AppointmentStatus = "pending" | "confirmed" | "completed" | "cancelled";
+export type AppointmentStatus = "pending" | "confirmed" | "completed" | "cancelled" | "archived";
 
 export interface Appointment {
   id: string;
@@ -155,8 +156,10 @@ export interface Appointment {
   appointment_date: string;
   appointment_time: string;
   duration_minutes: number;
+  price?: number;
   notes?: string | null;
   status: AppointmentStatus;
+  is_archived?: boolean;
   created_at: string;
   clients?: Client | null;
 }

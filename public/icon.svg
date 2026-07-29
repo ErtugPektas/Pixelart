@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <rect width="512" height="512" rx="128" fill="#090d16"/>
+  <rect x="8" y="8" width="496" height="496" rx="120" fill="none" stroke="#1e293b" stroke-width="12"/>
+  
+  <!-- PixelArt Icon Grid Blocks -->
+  <rect x="96" y="96" width="112" height="112" rx="20" fill="#ffffff"/>
+  <rect x="232" y="96" width="112" height="112" rx="20" fill="#ffffff"/>
+  <rect x="96" y="232" width="112" height="112" rx="20" fill="#ffffff"/>
+  <rect x="96" y="368" width="112" height="112" rx="20" fill="#ffffff"/>
+  
+  <!-- Signature Lime Green Pixel Square Dot & Accents (#65D22A) -->
+  <rect x="368" y="96" width="96" height="96" rx="18" fill="#65D22A"/>
+  <rect x="232" y="232" width="112" height="112" rx="20" fill="#65D22A"/>
+  <rect x="368" y="368" width="96" height="96" rx="18" fill="#65D22A"/>
+</svg>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { SupabaseFinanceRepository } from "@/infrastructure/repositories/SupabaseFinanceRepository";
 import { RecurringTransaction, FinanceAccount, RecurrenceFrequency } from "@/core/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Repeat, Plus, Play, Pause, Calendar, CheckCircle } from "lucide-react";
+import { Repeat, Plus, Play, Edit, Trash2, X } from "lucide-react";
 
 const financeRepo = new SupabaseFinanceRepository();
 
@@ -13,6 +13,7 @@ export default function RecurringPage() {
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<RecurringTransaction | null>(null);
 
   // Form
   const [title, setTitle] = useState("");
@@ -28,7 +29,7 @@ export default function RecurringPage() {
     const accs = await financeRepo.getAccounts();
     setRecurringList(data);
     setAccounts(accs);
-    if (accs.length > 0) setAccountId(accs[0].id);
+    if (accs.length > 0 && !accountId) setAccountId(accs[0].id);
     setLoading(false);
   };
 
@@ -36,30 +37,68 @@ export default function RecurringPage() {
     loadData();
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleOpenCreate = () => {
+    setEditingItem(null);
+    setTitle("");
+    setType("expense");
+    setAmount("");
+    setFrequency("monthly");
+    setNextDueDate(new Date().toISOString().split("T")[0]);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (item: RecurringTransaction) => {
+    setEditingItem(item);
+    setTitle(item.title);
+    setType(item.type as "income" | "expense");
+    setAccountId(item.account_id);
+    setAmount(String(item.amount));
+    setFrequency(item.frequency);
+    setNextDueDate(item.next_due_date || new Date().toISOString().split("T")[0]);
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !amount || !accountId) return;
 
-    await financeRepo.createRecurringTransaction({
-      title,
-      type,
-      account_id: accountId,
-      amount: Number(amount),
-      frequency,
-      next_due_date: nextDueDate || new Date().toISOString().split("T")[0],
-      auto_process: true,
-      status: "active",
-    });
+    if (editingItem) {
+      await financeRepo.updateRecurringTransaction(editingItem.id, {
+        title,
+        type,
+        account_id: accountId,
+        amount: Number(amount),
+        frequency,
+        next_due_date: nextDueDate || new Date().toISOString().split("T")[0],
+      });
+    } else {
+      await financeRepo.createRecurringTransaction({
+        title,
+        type,
+        account_id: accountId,
+        amount: Number(amount),
+        frequency,
+        next_due_date: nextDueDate || new Date().toISOString().split("T")[0],
+        auto_process: true,
+        status: "active",
+      });
+    }
 
     setIsModalOpen(false);
-    setTitle("");
-    setAmount("");
-    loadData();
+    setEditingItem(null);
+    await loadData();
+  };
+
+  const handleDelete = async (id: string, itemTitle: string) => {
+    if (confirm(`"${itemTitle}" otomatik ödeme kaydını silmek istediğinize emin misiniz?`)) {
+      await financeRepo.deleteRecurringTransaction(id);
+      await loadData();
+    }
   };
 
   const handleProcessDue = async () => {
     await financeRepo.processDueRecurringTransactions();
-    loadData();
+    await loadData();
   };
 
   return (
@@ -81,7 +120,7 @@ export default function RecurringPage() {
             <span>Günü Gelenleri İşle</span>
           </button>
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleOpenCreate}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -93,7 +132,7 @@ export default function RecurringPage() {
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {recurringList.map((item) => (
-          <div key={item.id} className="glass-card p-5 rounded-2xl space-y-4">
+          <div key={item.id} className="glass-card p-5 rounded-2xl space-y-4 relative group">
             <div className="flex items-center justify-between">
               <span
                 className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
@@ -104,13 +143,31 @@ export default function RecurringPage() {
               >
                 {item.type === "income" ? "Düzenli Gelir" : "Düzenli Gider"}
               </span>
-              <span className="text-xs font-mono font-semibold text-slate-400 uppercase">
-                {item.frequency === "monthly"
-                  ? "Aylık"
-                  : item.frequency === "weekly"
-                  ? "Haftalık"
-                  : "Yıllık"}
-              </span>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono font-semibold text-slate-400 uppercase mr-1">
+                  {item.frequency === "monthly"
+                    ? "Aylık"
+                    : item.frequency === "weekly"
+                    ? "Haftalık"
+                    : "Yıllık"}
+                </span>
+
+                <button
+                  onClick={() => handleOpenEdit(item)}
+                  className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-all"
+                  title="Düzenle"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(item.id, item.title)}
+                  className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
+                  title="Sil"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <div>
@@ -144,8 +201,20 @@ export default function RecurringPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="glass-panel w-full max-w-md p-6 rounded-2xl space-y-4">
-            <h3 className="text-base font-bold text-white">Yeni Periyodik Ödeme Tanımla</h3>
-            <form onSubmit={handleCreate} className="space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-white">
+                {editingItem ? "Periyodik Ödeme Düzenle" : "Yeni Periyodik Ödeme Tanımla"}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-white text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <label className="block text-[11px] text-slate-400 mb-1">İşlem Adı / Açıklama *</label>
                 <input
@@ -213,7 +282,7 @@ export default function RecurringPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1">İlk Ödeme Tarihi</label>
+                <label className="block text-[11px] text-slate-400 mb-1">Gelecek Ödeme Tarihi</label>
                 <input
                   type="date"
                   value={nextDueDate}
@@ -226,13 +295,13 @@ export default function RecurringPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer"
                 >
                   İptal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold"
+                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold cursor-pointer"
                 >
                   Kaydet
                 </button>

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { PixelArtLogo } from "@/components/common/PixelArtLogo";
 
 export default function Home() {
   const router = useRouter();
@@ -20,7 +21,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-400">
-      <div className="animate-pulse font-medium text-lg">PixelArt Yükleniyor...</div>
+      <div className="animate-pulse">
+        <PixelArtLogo variant="full" size="lg" showSubtitle />
+      </div>
     </div>
   );
 }

@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  UserPlus,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -42,7 +43,10 @@ export default function DashboardPage() {
 
   // Appointment Modal
   const [isAppModalOpen, setIsAppModalOpen] = useState(false);
+  const [isNewClientMode, setIsNewClientMode] = useState(false);
   const [clientId, setClientId] = useState("");
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
   const [serviceTitle, setServiceTitle] = useState("");
   const [appDate, setAppDate] = useState(new Date().toISOString().split("T")[0]);
   const [appTime, setAppTime] = useState("14:00");
@@ -56,11 +60,15 @@ export default function DashboardPage() {
       const apps = await appointmentRepo.getAll();
       const cls = await clientRepo.getAll();
 
+      // Only active (non-archived) records on main dashboard
+      const activeApps = apps.filter((a) => a.status !== "archived");
+      const activeClients = cls.filter((c) => c.status === "active");
+
       setSummary(sum);
       setRecentTransactions(txs.slice(0, 5));
-      setAppointments(apps);
-      setClients(cls);
-      if (cls.length > 0) setClientId(cls[0].id);
+      setAppointments(activeApps);
+      setClients(activeClients);
+      if (activeClients.length > 0) setClientId(activeClients[0].id);
     } catch (e) {
       console.error("Dashboard load error:", e);
     } finally {
@@ -74,18 +82,38 @@ export default function DashboardPage() {
 
   const handleCreateAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clientId || !serviceTitle) return;
+
+    let targetClientId = clientId;
+
+    if (isNewClientMode) {
+      if (!newClientName.trim()) {
+        alert("Lütfen yeni müşteri adını giriniz.");
+        return;
+      }
+      const createdClient = await clientRepo.create({
+        name: newClientName.trim(),
+        phone: newClientPhone.trim() || null,
+        type: "individual",
+        status: "active",
+      });
+      targetClientId = createdClient.id;
+    }
+
+    if (!targetClientId || !serviceTitle) return;
 
     await appointmentRepo.create({
-      client_id: clientId,
-      service_title: serviceTitle,
+      client_id: targetClientId,
+      service_title: serviceTitle.trim(),
       appointment_date: appDate,
       appointment_time: appTime,
-      notes: notes || null,
+      notes: notes.trim() || null,
       status: "confirmed",
     });
 
     setIsAppModalOpen(false);
+    setIsNewClientMode(false);
+    setNewClientName("");
+    setNewClientPhone("");
     setServiceTitle("");
     setNotes("");
     await loadAll();
@@ -475,22 +503,77 @@ export default function DashboardPage() {
             </div>
 
             <form onSubmit={handleCreateAppointment} className="space-y-3">
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Müşteri Seçin *</label>
-                <select
-                  required
-                  value={clientId}
-                  onChange={(e) => setClientId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+              {/* Client Mode Switch */}
+              <div className="p-1 bg-slate-900 rounded-xl border border-slate-800 flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setIsNewClientMode(false)}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    !isNewClientMode
+                      ? "bg-indigo-600 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
                 >
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} {c.company_title ? `(${c.company_title})` : ""}
-                    </option>
-                  ))}
-                  {clients.length === 0 && <option value="">Önce Müşteri Ekleyin</option>}
-                </select>
+                  Kayıtlı Müşteri Seç
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsNewClientMode(true)}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1 ${
+                    isNewClientMode
+                      ? "bg-emerald-600 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>+ Yeni Müşteri Ekle</span>
+                </button>
               </div>
+
+              {!isNewClientMode ? (
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Müşteri Seçin *</label>
+                  <select
+                    required
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+                  >
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} {c.phone ? `(${c.phone})` : ""}
+                      </option>
+                    ))}
+                    {clients.length === 0 && <option value="">Önce Müşteri Ekleyin</option>}
+                  </select>
+                </div>
+              ) : (
+                <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl space-y-2">
+                  <div>
+                    <label className="block text-[11px] text-emerald-400 font-semibold mb-1">
+                      Yeni Müşteri Adı Soyadı *
+                    </label>
+                    <input
+                      type="text"
+                      required={isNewClientMode}
+                      value={newClientName}
+                      onChange={(e) => setNewClientName(e.target.value)}
+                      placeholder="Örn: Mehmet Öz"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Telefon Numarası</label>
+                    <input
+                      type="text"
+                      value={newClientPhone}
+                      onChange={(e) => setNewClientPhone(e.target.value)}
+                      placeholder="+90 5XX XXX XX XX"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-[11px] text-slate-400 mb-1">Randevu / Görüşme Başlığı *</label>

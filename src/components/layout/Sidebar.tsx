@@ -5,24 +5,24 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
+  CalendarCheck,
   FolderKanban,
   Wallet,
   Landmark,
-  FileText,
   Repeat,
   BarChart3,
-  Sparkles,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { PixelArtLogo } from "@/components/common/PixelArtLogo";
 
 const navItems = [
   { name: "Genel Bakış", href: "/dashboard", icon: LayoutDashboard },
   { name: "Müşteriler", href: "/clients", icon: Users },
+  { name: "Randevular", href: "/appointments", icon: CalendarCheck },
   { name: "Projeler", href: "/projects", icon: FolderKanban },
   { name: "Finans Paneli", href: "/finance", icon: Wallet },
   { name: "Banka & Kasalar", href: "/finance/accounts", icon: Landmark },
-  { name: "Fatura & Fişler", href: "/finance/invoices", icon: FileText },
   { name: "Tekrarlayan Ödemeler", href: "/finance/recurring", icon: Repeat },
   { name: "Finansal Raporlar", href: "/reports", icon: BarChart3 },
 ];
@@ -32,16 +32,12 @@ export function Sidebar() {
   const { logout } = useAuth();
 
   return (
-    <aside className="w-64 glass-panel border-r border-slate-800/80 flex flex-col h-screen sticky top-0 z-30">
+    <aside className="hidden md:flex w-64 glass-panel border-r border-slate-800/80 flex-col h-screen sticky top-0 z-30">
       {/* Brand Logo */}
-      <div className="p-6 border-b border-slate-800/80 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-          <Sparkles className="w-5 h-5" />
-        </div>
-        <div>
-          <h1 className="font-bold text-white tracking-wide text-base">PixelArt</h1>
-          <p className="text-[10px] text-indigo-400 font-semibold tracking-wider uppercase">Finans & Yönetim</p>
-        </div>
+      <div className="p-6 border-b border-slate-800/80 flex items-center">
+        <Link href="/dashboard">
+          <PixelArtLogo variant="full" size="md" showSubtitle />
+        </Link>
       </div>
 
       {/* Navigation */}

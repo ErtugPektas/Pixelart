@@ -12,6 +12,7 @@ const MOCK_APPOINTMENTS: Appointment[] = [
     appointment_date: new Date().toISOString().split("T")[0],
     appointment_time: "14:00",
     duration_minutes: 60,
+    price: 3500,
     notes: "Proje konsept taslağı ve renk paleti sunumu",
     status: "confirmed",
     created_at: new Date().toISOString(),
@@ -76,6 +77,7 @@ export class SupabaseAppointmentRepository implements AppointmentRepository {
         appointment.appointment_date || new Date().toISOString().split("T")[0],
       appointment_time: appointment.appointment_time || "10:00",
       duration_minutes: appointment.duration_minutes || 60,
+      price: Number(appointment.price || 0),
       notes: appointment.notes || null,
       status: appointment.status || "confirmed",
       created_at: new Date().toISOString(),
@@ -90,6 +92,7 @@ export class SupabaseAppointmentRepository implements AppointmentRepository {
           appointment_date: newAppointment.appointment_date,
           appointment_time: newAppointment.appointment_time,
           duration_minutes: newAppointment.duration_minutes,
+          price: newAppointment.price,
           notes: newAppointment.notes,
           status: newAppointment.status,
         })
@@ -114,6 +117,14 @@ export class SupabaseAppointmentRepository implements AppointmentRepository {
     const index = current.findIndex((a) => a.id === id);
     if (index !== -1) {
       current[index] = { ...current[index], ...appointment };
+      try {
+        await supabase
+          .from("appointments")
+          .update(appointment)
+          .eq("id", id);
+      } catch (e) {
+        console.warn("Supabase appointment update warning:", e);
+      }
       this.saveLocal(current);
       return current[index];
     }

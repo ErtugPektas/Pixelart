@@ -103,6 +103,26 @@ export class SupabaseFinanceRepository implements FinanceRepository {
     }
   }
 
+  private getLocalRecurring(): RecurringTransaction[] {
+    if (typeof window === "undefined") return MOCK_RECURRING;
+    const stored = localStorage.getItem("pixelart_recurring");
+    if (!stored) {
+      localStorage.setItem("pixelart_recurring", JSON.stringify(MOCK_RECURRING));
+      return MOCK_RECURRING;
+    }
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return MOCK_RECURRING;
+    }
+  }
+
+  private saveLocalRecurring(list: RecurringTransaction[]) {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("pixelart_recurring", JSON.stringify(list));
+    }
+  }
+
   // ACCOUNTS
   async getAccounts(): Promise<FinanceAccount[]> {
     try {
@@ -312,7 +332,19 @@ export class SupabaseFinanceRepository implements FinanceRepository {
 
   // RECURRING TRANSACTIONS
   async getRecurringTransactions(): Promise<RecurringTransaction[]> {
-    return MOCK_RECURRING;
+    try {
+      const { data, error } = await supabase
+        .from("recurring_transactions")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        return data as RecurringTransaction[];
+      }
+    } catch (e) {
+      console.warn("Supabase recurring transactions fetch warning:", e);
+    }
+    return this.getLocalRecurring();
   }
 
   async createRecurringTransaction(
@@ -335,8 +367,50 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       status: recurring.status || "active",
       created_at: new Date().toISOString(),
     };
-    MOCK_RECURRING.unshift(newRec);
+
+    try {
+      await supabase.from("recurring_transactions").insert(newRec);
+    } catch (e) {
+      console.warn("Supabase recurring transaction insert warning:", e);
+    }
+
+    const current = this.getLocalRecurring();
+    const updated = [newRec, ...current];
+    this.saveLocalRecurring(updated);
     return newRec;
+  }
+
+  async updateRecurringTransaction(
+    id: string,
+    recurring: Partial<RecurringTransaction>
+  ): Promise<RecurringTransaction> {
+    const current = this.getLocalRecurring();
+    const index = current.findIndex((r) => r.id === id);
+    if (index !== -1) {
+      current[index] = { ...current[index], ...recurring };
+      try {
+        await supabase
+          .from("recurring_transactions")
+          .update(recurring)
+          .eq("id", id);
+      } catch (e) {
+        console.warn("Supabase update recurring warning:", e);
+      }
+      this.saveLocalRecurring(current);
+      return current[index];
+    }
+    throw new Error("Tekrarlayan işlem bulunamadı");
+  }
+
+  async deleteRecurringTransaction(id: string): Promise<boolean> {
+    try {
+      await supabase.from("recurring_transactions").delete().eq("id", id);
+    } catch (e) {
+      console.warn("Supabase delete recurring warning:", e);
+    }
+    const current = this.getLocalRecurring().filter((r) => r.id !== id);
+    this.saveLocalRecurring(current);
+    return true;
   }
 
   async processDueRecurringTransactions(): Promise<void> {

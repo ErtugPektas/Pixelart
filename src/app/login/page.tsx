@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { Sparkles, Lock, Mail, ArrowRight } from "lucide-react";
+import { Lock, Mail, ArrowRight } from "lucide-react";
+import { PixelArtLogo } from "@/components/common/PixelArtLogo";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("admin@pixelart.com");
@@ -35,15 +36,11 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md glass-panel p-8 rounded-2xl shadow-2xl relative overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-600/30 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-600/20 rounded-full blur-3xl"></div>
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#65D22A]/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-600/10 rounded-full blur-3xl"></div>
 
-        <div className="text-center mb-8 relative z-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 mb-4 text-indigo-400">
-            <Sparkles className="w-7 h-7" />
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">PixelArt</h1>
-          <p className="text-xs text-slate-400 mt-1">Kurumsal Finans & Yönetim Portalı</p>
+        <div className="text-center mb-8 relative z-10 flex flex-col items-center justify-center">
+          <PixelArtLogo variant="full" size="xl" showSubtitle className="mb-2" />
         </div>
 
         {error && (

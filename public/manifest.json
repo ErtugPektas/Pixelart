@@ -1,0 +1,16 @@
+{
+  "name": "PixelArt — Kurumsal Yönetim & Finans",
+  "short_name": "PixelArt",
+  "description": "PixelArt Müşteri, Proje ve Gelişmiş Finans Yönetim Uygulaması",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#65D22A",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

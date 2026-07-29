@@ -34,6 +34,8 @@ export interface FinanceRepository {
   // Recurring
   getRecurringTransactions(): Promise<RecurringTransaction[]>;
   createRecurringTransaction(recurring: Partial<RecurringTransaction>): Promise<RecurringTransaction>;
+  updateRecurringTransaction(id: string, recurring: Partial<RecurringTransaction>): Promise<RecurringTransaction>;
+  deleteRecurringTransaction(id: string): Promise<boolean>;
   processDueRecurringTransactions(): Promise<void>;
 
   // Financial Analytics & Summary
