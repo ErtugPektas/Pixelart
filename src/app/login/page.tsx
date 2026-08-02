@@ -7,8 +7,8 @@ import { Lock, Mail, ArrowRight } from "lucide-react";
 import { PixelArtLogo } from "@/components/common/PixelArtLogo";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@pixelart.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
