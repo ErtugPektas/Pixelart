@@ -13,6 +13,17 @@ export class SupabaseAppointmentRepository implements AppointmentRepository {
     return (data as unknown as Appointment[]) || [];
   }
 
+  async getById(id: string): Promise<Appointment | null> {
+    const { data, error } = await supabase
+      .from("appointments")
+      .select(`*, clients(*)`)
+      .eq("id", id)
+      .single();
+
+    if (error) return null;
+    return data as unknown as Appointment;
+  }
+
   async getUpcoming(days: number): Promise<Appointment[]> {
     const today = new Date().toISOString().split("T")[0];
     const target = new Date();

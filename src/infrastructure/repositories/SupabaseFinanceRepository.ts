@@ -1,12 +1,11 @@
 import { supabase } from "@/lib/supabase";
 import {
-  FinanceRepository,
   FinanceTransaction,
   FinanceCategory,
   RecurringTransaction,
   FinancialSummary,
-  TransactionFilter,
 } from "@/core/types";
+import { FinanceRepository, TransactionFilter } from "@/core/repositories/FinanceRepository";
 
 export class SupabaseFinanceRepository implements FinanceRepository {
   // CATEGORIES

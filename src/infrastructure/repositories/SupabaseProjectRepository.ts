@@ -13,6 +13,17 @@ export class SupabaseProjectRepository implements ProjectRepository {
     return (data as unknown as Project[]) || [];
   }
 
+  async getById(id: string): Promise<Project | null> {
+    const { data, error } = await supabase
+      .from("projects")
+      .select(`*, clients(*)`)
+      .eq("id", id)
+      .single();
+
+    if (error) return null;
+    return data as unknown as Project;
+  }
+
   async getByClientId(clientId: string): Promise<Project[]> {
     const { data, error } = await supabase
       .from("projects")
