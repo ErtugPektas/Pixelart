@@ -15,6 +15,7 @@ import {
   Activity,
   Layers,
 } from "lucide-react";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 const financeRepo = new SupabaseFinanceRepository();
 const appointmentRepo = new SupabaseAppointmentRepository();
@@ -26,24 +27,27 @@ export default function ReportsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      try {
-        const apps = await appointmentRepo.getAll();
-        const txs = await financeRepo.getTransactions();
-        const cls = await clientRepo.getAll();
-        setAppointments(apps);
-        setTransactions(txs);
-        setClients(cls);
-      } catch (e) {
-        console.error("Error loading reports data:", e);
-      } finally {
-        setLoading(false);
-      }
+  async function loadData() {
+    setLoading(true);
+    try {
+      const apps = await appointmentRepo.getAll();
+      const txs = await financeRepo.getTransactions();
+      const cls = await clientRepo.getAll();
+      setAppointments(apps);
+      setTransactions(txs);
+      setClients(cls);
+    } catch (e) {
+      console.error("Error loading reports data:", e);
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
     loadData();
   }, []);
+
+  useRealtimeSync(["finance_transactions", "finance_categories", "clients", "appointments"], loadData);
 
   // Compute Completed Sessions
   const completedAppointments = useMemo(() => {
@@ -88,18 +92,8 @@ export default function ReportsPage() {
       map[name].totalRevenue += a.price || 0;
     });
 
-    if (Object.keys(map).length === 0) {
-      clients.slice(0, 4).forEach((c, idx) => {
-        map[c.name] = {
-          name: c.name,
-          count: (idx + 1) * 3,
-          totalRevenue: (idx + 1) * 12500,
-        };
-      });
-    }
-
     return Object.values(map);
-  }, [completedAppointments, clients]);
+  }, [completedAppointments]);
 
   // Weekly Density (Pazartesi - Pazar)
   const weeklyDensity = useMemo(() => {
@@ -121,17 +115,6 @@ export default function ReportsPage() {
       }
     });
 
-    // Fallback sample data if empty
-    if (completedAppointments.length === 0) {
-      days[0].count = 1;
-      days[1].count = 4;
-      days[2].count = 3;
-      days[3].count = 1;
-      days[4].count = 2;
-      days[5].count = 3;
-      days[6].count = 5;
-    }
-
     return days;
   }, [completedAppointments]);
 
@@ -142,11 +125,6 @@ export default function ReportsPage() {
       const title = a.service_title || "Genel Danışmanlık";
       map[title] = (map[title] || 0) + 1;
     });
-
-    if (Object.keys(map).length === 0) {
-      map["Arayüz & UI/UX Tasarım"] = 11;
-      map["Marka & Logo Tasarımı"] = 6;
-    }
 
     const COLORS = ["#e11d48", "#818cf8", "#34d399", "#fbbf24", "#f43f5e"];
     return Object.entries(map).map(([title, count], idx) => ({
@@ -221,31 +199,35 @@ export default function ReportsPage() {
           </h3>
 
           <div className="h-64 flex items-end justify-around pt-6 px-4 pb-6 border-b border-slate-800">
-            {clientPerformance.map((item, idx) => {
-              const maxRev = Math.max(
-                ...clientPerformance.map((c) => c.totalRevenue),
-                1
-              );
-              const heightPct = Math.max((item.totalRevenue / maxRev) * 100, 10);
-              return (
-                <div key={idx} className="flex flex-col items-center gap-2 group flex-1">
-                  <span className="text-[10px] text-slate-400 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
-                    ₺{item.totalRevenue.toLocaleString("tr-TR")}
-                  </span>
-                  <div className="w-full max-w-[60px] bg-slate-900 rounded-t-lg overflow-hidden flex items-end h-44">
-                    <div
-                      style={{ height: `${heightPct}%` }}
-                      className={`w-full transition-all duration-500 ${
-                        idx % 2 === 0 ? "bg-rose-600" : "bg-rose-700/60"
-                      }`}
-                    />
+            {clientPerformance.length === 0 ? (
+              <div className="w-full text-center text-slate-500 text-xs">Kayıtlı hasılat veya seans bulunamadı.</div>
+            ) : (
+              clientPerformance.map((item, idx) => {
+                const maxRev = Math.max(
+                  ...clientPerformance.map((c) => c.totalRevenue),
+                  1
+                );
+                const heightPct = Math.max((item.totalRevenue / maxRev) * 100, 10);
+                return (
+                  <div key={idx} className="flex flex-col items-center gap-2 group flex-1">
+                    <span className="text-[10px] text-slate-400 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                      ₺{item.totalRevenue.toLocaleString("tr-TR")}
+                    </span>
+                    <div className="w-full max-w-[60px] bg-slate-900 rounded-t-lg overflow-hidden flex items-end h-44">
+                      <div
+                        style={{ height: `${heightPct}%` }}
+                        className={`w-full transition-all duration-500 ${
+                          idx % 2 === 0 ? "bg-rose-600" : "bg-rose-700/60"
+                        }`}
+                      />
+                    </div>
+                    <span className="text-[10px] font-medium text-slate-400 truncate max-w-[80px] text-center">
+                      {item.name}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-medium text-slate-400 truncate max-w-[80px] text-center">
-                    {item.name}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -320,37 +302,42 @@ export default function ReportsPage() {
                   stroke="#1e293b"
                   strokeWidth="3.8"
                 />
-                <path
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  stroke="#e11d48"
-                  strokeWidth="3.8"
-                  strokeDasharray="65, 100"
-                />
-                <path
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  stroke="#818cf8"
-                  strokeWidth="3.8"
-                  strokeDasharray="35, 100"
-                  strokeDashoffset="-65"
-                />
+                {serviceBreakdown.length > 0 && serviceBreakdown.map((s, idx) => {
+                  const total = serviceBreakdown.reduce((acc, curr) => acc + curr.count, 0);
+                  const dasharray = (s.count / total) * 100;
+                  const prevDasharray = serviceBreakdown.slice(0, idx).reduce((acc, curr) => acc + (curr.count / total) * 100, 0);
+                  return (
+                    <path
+                      key={idx}
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke={s.color}
+                      strokeWidth="3.8"
+                      strokeDasharray={`${dasharray}, 100`}
+                      strokeDashoffset={idx === 0 ? 0 : `-${prevDasharray}`}
+                    />
+                  );
+                })}
               </svg>
             </div>
 
             <div className="w-full space-y-2 text-xs">
-              {serviceBreakdown.map((s) => (
-                <div key={s.title} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: s.color }}
-                    />
-                    <span className="text-slate-300 font-medium">{s.title}</span>
+              {serviceBreakdown.length === 0 ? (
+                <div className="text-center text-slate-500">Kayıtlı veri yok.</div>
+              ) : (
+                serviceBreakdown.map((s) => (
+                  <div key={s.title} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ backgroundColor: s.color }}
+                      />
+                      <span className="text-slate-300 font-medium">{s.title}</span>
+                    </div>
+                    <span className="font-bold text-white">{s.count} seans</span>
                   </div>
-                  <span className="font-bold text-white">{s.count} seans</span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -372,23 +359,29 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
-                {clientPerformance.map((c, idx) => {
-                  const avg = c.count > 0 ? c.totalRevenue / c.count : 0;
-                  return (
-                    <tr key={idx} className="hover:bg-slate-900/40">
-                      <td className="py-3 font-bold text-white">{c.name}</td>
-                      <td className="py-3 text-center text-slate-300 font-semibold">
-                        {c.count}
-                      </td>
-                      <td className="py-3 text-right font-bold text-emerald-400">
-                        {formatCurrency(c.totalRevenue)}
-                      </td>
-                      <td className="py-3 text-right font-bold text-indigo-400">
-                        {formatCurrency(avg)}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {clientPerformance.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-slate-500">Kayıtlı veri yok.</td>
+                  </tr>
+                ) : (
+                  clientPerformance.map((c, idx) => {
+                    const avg = c.count > 0 ? c.totalRevenue / c.count : 0;
+                    return (
+                      <tr key={idx} className="hover:bg-slate-900/40">
+                        <td className="py-3 font-bold text-white">{c.name}</td>
+                        <td className="py-3 text-center text-slate-300 font-semibold">
+                          {c.count}
+                        </td>
+                        <td className="py-3 text-right font-bold text-emerald-400">
+                          {formatCurrency(c.totalRevenue)}
+                        </td>
+                        <td className="py-3 text-right font-bold text-indigo-400">
+                          {formatCurrency(avg)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

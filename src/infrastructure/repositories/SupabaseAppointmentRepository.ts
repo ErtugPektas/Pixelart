@@ -24,6 +24,44 @@ const MOCK_APPOINTMENTS: Appointment[] = [
       created_at: new Date().toISOString(),
     },
   },
+  {
+    id: "app2",
+    client_id: "c2",
+    service_title: "E-Ticaret Danışmanlık",
+    appointment_date: "2026-06-25",
+    appointment_time: "10:30",
+    duration_minutes: 90,
+    price: 5000,
+    notes: "Dönüşüm oranlarını artırma toplantısı",
+    status: "completed",
+    created_at: "2026-06-20T10:00:00Z",
+    clients: {
+      id: "c2",
+      name: "Trend Moda",
+      type: "company",
+      status: "active",
+      created_at: new Date().toISOString(),
+    },
+  },
+  {
+    id: "app3",
+    client_id: "c3",
+    service_title: "Logo & Marka Kimliği Sunumu",
+    appointment_date: "2026-05-15",
+    appointment_time: "15:00",
+    duration_minutes: 45,
+    price: 2500,
+    notes: "3 farklı konsept sunumu",
+    status: "completed",
+    created_at: "2026-05-10T09:30:00Z",
+    clients: {
+      id: "c3",
+      name: "Yıldız Girişim",
+      type: "company",
+      status: "active",
+      created_at: new Date().toISOString(),
+    },
+  }
 ];
 
 export class SupabaseAppointmentRepository implements AppointmentRepository {

@@ -5,14 +5,13 @@ import { SupabaseFinanceRepository } from "@/infrastructure/repositories/Supabas
 import { SupabaseClientRepository } from "@/infrastructure/repositories/SupabaseClientRepository";
 import { SupabaseProjectRepository } from "@/infrastructure/repositories/SupabaseProjectRepository";
 import {
-  FinanceTransaction,
-  FinanceAccount,
   FinanceCategory,
   Client,
   Project,
   TransactionType,
   PaymentMethod,
   FinancialSummary,
+  FinanceTransaction,
 } from "@/core/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import {
@@ -28,6 +27,7 @@ import {
   Landmark,
   CreditCard,
 } from "lucide-react";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 const financeRepo = new SupabaseFinanceRepository();
 const clientRepo = new SupabaseClientRepository();
@@ -42,7 +42,6 @@ const PAYMENT_LABELS: Record<PaymentMethod, string> = {
 
 export default function FinancePage() {
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
-  const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [categories, setCategories] = useState<FinanceCategory[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -55,8 +54,6 @@ export default function FinancePage() {
 
   // Form state
   const [type, setType] = useState<TransactionType>("income");
-  const [accountId, setAccountId] = useState("");
-  const [toAccountId, setToAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [clientId, setClientId] = useState("");
   const [projectId, setProjectId] = useState("");
@@ -69,20 +66,16 @@ export default function FinancePage() {
     setLoading(true);
     try {
       const txs = await financeRepo.getTransactions();
-      const accs = await financeRepo.getAccounts();
       const cats = await financeRepo.getCategories();
       const cls = await clientRepo.getAll();
       const prjs = await projectRepo.getAll();
       const sum = await financeRepo.getFinancialSummary();
 
       setTransactions(txs);
-      setAccounts(accs);
       setCategories(cats);
       setClients(cls);
       setProjects(prjs);
       setSummary(sum);
-
-      if (accs.length > 0 && !accountId) setAccountId(accs[0].id);
     } catch (e) {
       console.error("Finance data load error:", e);
     } finally {
@@ -94,14 +87,14 @@ export default function FinancePage() {
     loadAll();
   }, []);
 
+  useRealtimeSync(["finance_transactions", "finance_categories", "clients", "projects"], loadAll);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !accountId) return;
+    if (!amount) return;
 
     await financeRepo.createTransaction({
       type,
-      account_id: accountId,
-      to_account_id: type === "transfer" ? toAccountId || null : null,
       category_id: categoryId || null,
       client_id: clientId || null,
       project_id: projectId || null,
@@ -128,8 +121,7 @@ export default function FinancePage() {
     return transactions.filter((tx) => {
       const matchesSearch =
         (tx.description || "").toLowerCase().includes(search.toLowerCase()) ||
-        (tx.clients?.name || "").toLowerCase().includes(search.toLowerCase()) ||
-        (tx.finance_accounts?.name || "").toLowerCase().includes(search.toLowerCase());
+        (tx.clients?.name || "").toLowerCase().includes(search.toLowerCase());
 
       const matchesType = filterType === "all" || tx.type === filterType;
       return matchesSearch && matchesType;
@@ -261,7 +253,6 @@ export default function FinancePage() {
                 <th className="pb-3 font-semibold">Tarih</th>
                 <th className="pb-3 font-semibold">Tür</th>
                 <th className="pb-3 font-semibold">Açıklama</th>
-                <th className="pb-3 font-semibold">Hesap</th>
                 <th className="pb-3 font-semibold">Ödeme Yöntemi</th>
                 <th className="pb-3 font-semibold">Müşteri / Proje</th>
                 <th className="pb-3 font-semibold text-right">Tutar</th>
@@ -288,7 +279,6 @@ export default function FinancePage() {
                   <td className="py-3.5 font-medium text-white">
                     {tx.description || "Finansal İşlem"}
                   </td>
-                  <td className="py-3.5 text-slate-400">{tx.finance_accounts?.name || "Ana Hesap"}</td>
                   <td className="py-3.5 text-slate-400">
                     {PAYMENT_LABELS[tx.payment_method] || "Banka Transferi"}
                   </td>
@@ -381,41 +371,6 @@ export default function FinancePage() {
                   Transfer
                 </button>
               </div>
-
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Hesap *</label>
-                <select
-                  required
-                  value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
-                >
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({a.currency}) — Bakiye: {formatCurrency(a.balance, a.currency)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {type === "transfer" && (
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">Hedef Kasa/Hesap *</label>
-                  <select
-                    required
-                    value={toAccountId}
-                    onChange={(e) => setToAccountId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
-                  >
-                    <option value="">-- Hedef Hesap Seçin --</option>
-                    {accounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} ({a.currency})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

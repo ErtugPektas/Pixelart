@@ -1,6 +1,5 @@
 import {
   FinanceTransaction,
-  FinanceAccount,
   FinanceCategory,
   RecurringTransaction,
   FinancialSummary,
@@ -17,10 +16,6 @@ export interface TransactionFilter {
 }
 
 export interface FinanceRepository {
-  // Accounts
-  getAccounts(): Promise<FinanceAccount[]>;
-  createAccount(account: Partial<FinanceAccount>): Promise<FinanceAccount>;
-  updateAccountBalance(accountId: string, delta: number): Promise<void>;
 
   // Categories
   getCategories(): Promise<FinanceCategory[]>;

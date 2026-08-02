@@ -16,6 +16,42 @@ const MOCK_PROJECTS: Project[] = [
     start_date: new Date().toISOString().split("T")[0],
     created_at: new Date().toISOString(),
   },
+  {
+    id: "p2",
+    client_id: "c2",
+    title: "E-Ticaret Platformu Yenilemesi",
+    description: "Kullanıcı deneyimi odaklı modern e-ticaret arayüzü tasarımı",
+    status: "completed",
+    budget: 85000,
+    currency: "TRY",
+    start_date: "2026-03-15",
+    end_date: "2026-06-20",
+    created_at: "2026-03-10T10:00:00Z",
+  },
+  {
+    id: "p3",
+    client_id: "c3",
+    title: "SaaS Dashboard Tasarımı",
+    description: "Analitik verilerin sunulduğu B2B dashboard",
+    status: "completed",
+    budget: 60000,
+    currency: "TRY",
+    start_date: "2026-01-10",
+    end_date: "2026-04-05",
+    created_at: "2026-01-05T09:30:00Z",
+  },
+  {
+    id: "p4",
+    client_id: "c1",
+    title: "Marka Kimliği & Logo",
+    description: "Yeni oluşum için kurumsal kimlik kılavuzu",
+    status: "completed",
+    budget: 25000,
+    currency: "TRY",
+    start_date: "2026-05-01",
+    end_date: "2026-05-30",
+    created_at: "2026-04-28T14:15:00Z",
+  }
 ];
 
 export class SupabaseProjectRepository implements ProjectRepository {

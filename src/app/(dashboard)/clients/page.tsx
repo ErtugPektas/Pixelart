@@ -25,6 +25,7 @@ import {
   ExternalLink,
   ChevronRight,
 } from "lucide-react";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 const clientRepo = new SupabaseClientRepository();
 const appointmentRepo = new SupabaseAppointmentRepository();
@@ -73,6 +74,8 @@ export default function ClientsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useRealtimeSync(["clients"], loadData);
 
   const handleOpenCreate = () => {
     setEditingClient(null);

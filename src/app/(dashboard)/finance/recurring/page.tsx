@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { SupabaseFinanceRepository } from "@/infrastructure/repositories/SupabaseFinanceRepository";
-import { RecurringTransaction, FinanceAccount, RecurrenceFrequency } from "@/core/types";
+import { RecurringTransaction, RecurrenceFrequency } from "@/core/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Repeat, Plus, Play, Edit, Trash2, X } from "lucide-react";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 const financeRepo = new SupabaseFinanceRepository();
 
 export default function RecurringPage() {
   const [recurringList, setRecurringList] = useState<RecurringTransaction[]>([]);
-  const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<RecurringTransaction | null>(null);
@@ -18,7 +18,6 @@ export default function RecurringPage() {
   // Form
   const [title, setTitle] = useState("");
   const [type, setType] = useState<"income" | "expense">("expense");
-  const [accountId, setAccountId] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<RecurrenceFrequency>("monthly");
   const [nextDueDate, setNextDueDate] = useState("");
@@ -26,16 +25,15 @@ export default function RecurringPage() {
   const loadData = async () => {
     setLoading(true);
     const data = await financeRepo.getRecurringTransactions();
-    const accs = await financeRepo.getAccounts();
     setRecurringList(data);
-    setAccounts(accs);
-    if (accs.length > 0 && !accountId) setAccountId(accs[0].id);
     setLoading(false);
   };
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useRealtimeSync(["finance_recurring", "finance_categories", "clients"], loadData);
 
   const handleOpenCreate = () => {
     setEditingItem(null);
@@ -51,7 +49,6 @@ export default function RecurringPage() {
     setEditingItem(item);
     setTitle(item.title);
     setType(item.type as "income" | "expense");
-    setAccountId(item.account_id);
     setAmount(String(item.amount));
     setFrequency(item.frequency);
     setNextDueDate(item.next_due_date || new Date().toISOString().split("T")[0]);
@@ -60,13 +57,13 @@ export default function RecurringPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !amount || !accountId) return;
+    if (!title || !amount) return;
 
     if (editingItem) {
       await financeRepo.updateRecurringTransaction(editingItem.id, {
         title,
         type,
-        account_id: accountId,
+
         amount: Number(amount),
         frequency,
         next_due_date: nextDueDate || new Date().toISOString().split("T")[0],
@@ -75,7 +72,7 @@ export default function RecurringPage() {
       await financeRepo.createRecurringTransaction({
         title,
         type,
-        account_id: accountId,
+
         amount: Number(amount),
         frequency,
         next_due_date: nextDueDate || new Date().toISOString().split("T")[0],
@@ -253,21 +250,7 @@ export default function RecurringPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">Hesap *</label>
-                  <select
-                    value={accountId}
-                    onChange={(e) => setAccountId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
-                  >
-                    {accounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="block text-[11px] text-slate-400 mb-1">Tutar *</label>
                   <input

@@ -22,6 +22,8 @@ import {
   Plus,
   UserPlus,
 } from "lucide-react";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { GlobalNotesWidget } from "@/components/dashboard/GlobalNotesWidget";
 import Link from "next/link";
 
 const financeRepo = new SupabaseFinanceRepository();
@@ -79,6 +81,8 @@ export default function DashboardPage() {
   useEffect(() => {
     loadAll();
   }, []);
+
+  useRealtimeSync(["appointments", "finance_transactions", "projects"], loadAll);
 
   const handleCreateAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,7 +191,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Financial Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Total Income */}
         <div className="glass-card p-5 rounded-2xl relative overflow-hidden">
           <div className="flex items-center justify-between">
@@ -252,23 +256,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Pending Receivables */}
-        <div className="glass-card p-5 rounded-2xl relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Bekleyen Alacaklar
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-              <Receipt className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <h3 className="text-xl font-bold text-white">
-              {loading ? "..." : formatCurrency(summary?.pending_receivables || 0)}
-            </h3>
-            <p className="text-[11px] text-amber-400 mt-1">Tahsil Edilecek Fatura</p>
-          </div>
-        </div>
       </div>
 
       {/* Şık ve Sade Müşteri Randevu Takvimi Section */}
@@ -427,63 +414,67 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Transactions Table */}
-      <div className="glass-card p-6 rounded-2xl space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-            Son Finansal Hareketler
-          </h3>
-          <Link href="/finance" className="text-xs text-indigo-400 hover:underline font-medium">
-            Tümünü Gör
-          </Link>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <GlobalNotesWidget />
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="text-slate-400 border-b border-slate-800/80">
-                <th className="pb-3 font-semibold">Tarih</th>
-                <th className="pb-3 font-semibold">Açıklama</th>
-                <th className="pb-3 font-semibold">Tür</th>
-                <th className="pb-3 font-semibold text-right">Tutar</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {recentTransactions.map((tx) => (
-                <tr key={tx.id} className="hover:bg-slate-900/40">
-                  <td className="py-3 text-slate-400">{formatDate(tx.transaction_date)}</td>
-                  <td className="py-3 font-medium text-white">
-                    {tx.description || "Finans İşlemi"}
-                  </td>
-                  <td className="py-3">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
+        {/* Recent Transactions Table */}
+        <div className="glass-card p-6 rounded-2xl space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+              Son Finansal Hareketler
+            </h3>
+            <Link href="/finance" className="text-xs text-indigo-400 hover:underline font-medium">
+              Tümünü Gör
+            </Link>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="text-slate-400 border-b border-slate-800/80">
+                  <th className="font-semibold py-2">Tarih</th>
+                  <th className="font-semibold py-2">İşlem Başlığı</th>
+                  <th className="font-semibold py-2">Müşteri</th>
+                  <th className="font-semibold py-2">Tür</th>
+                  <th className="font-semibold py-2 text-right">Tutar</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/50">
+                {recentTransactions.map((tx) => (
+                  <tr key={tx.id} className="hover:bg-slate-900/30 transition-colors">
+                    <td className="py-3 text-slate-300">{formatDate(tx.transaction_date)}</td>
+                    <td className="py-3 text-white font-medium">{tx.description || "Finans İşlemi"}</td>
+                    <td className="py-3 text-slate-400">{tx.clients?.name || "-"}</td>
+                    <td className="py-3">
+                      <span
+                        className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                          tx.type === "income"
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            : tx.type === "expense"
+                            ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                            : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                        }`}
+                      >
+                        {tx.type === "income" ? "Gelir" : tx.type === "expense" ? "Gider" : "Transfer"}
+                      </span>
+                    </td>
+                    <td
+                      className={`py-3 text-right font-bold ${
                         tx.type === "income"
-                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                          ? "text-emerald-400"
                           : tx.type === "expense"
-                          ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                          : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                          ? "text-rose-400"
+                          : "text-indigo-400"
                       }`}
                     >
-                      {tx.type === "income" ? "Gelir" : tx.type === "expense" ? "Gider" : "Transfer"}
-                    </span>
-                  </td>
-                  <td
-                    className={`py-3 text-right font-bold ${
-                      tx.type === "income"
-                        ? "text-emerald-400"
-                        : tx.type === "expense"
-                        ? "text-rose-400"
-                        : "text-indigo-400"
-                    }`}
-                  >
-                    {tx.type === "income" ? "+" : tx.type === "expense" ? "-" : ""}
-                    {formatCurrency(tx.amount, tx.currency)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      {tx.type === "income" ? "+" : tx.type === "expense" ? "-" : ""}
+                      {formatCurrency(tx.amount, tx.currency)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

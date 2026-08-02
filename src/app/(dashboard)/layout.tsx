@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
@@ -16,11 +16,18 @@ export default function DashboardLayout({
   const { user, loading } = useAuth();
   const router = useRouter();
 
+  const pathname = usePathname();
+
   useEffect(() => {
     if (!loading && !user) {
       router.push("/login");
+    } else if (user && user.role !== "admin") {
+      const adminRoutes = ["/finance", "/reports", "/users"];
+      if (adminRoutes.some(route => pathname.startsWith(route))) {
+        router.push("/dashboard");
+      }
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, pathname]);
 
   if (loading || !user) {
     return (

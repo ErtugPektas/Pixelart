@@ -12,6 +12,7 @@ import {
   Repeat,
   BarChart3,
   LogOut,
+  UserCog,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { PixelArtLogo } from "@/components/common/PixelArtLogo";
@@ -21,15 +22,15 @@ const navItems = [
   { name: "Müşteriler", href: "/clients", icon: Users },
   { name: "Randevular", href: "/appointments", icon: CalendarCheck },
   { name: "Projeler", href: "/projects", icon: FolderKanban },
-  { name: "Finans Paneli", href: "/finance", icon: Wallet },
-  { name: "Banka & Kasalar", href: "/finance/accounts", icon: Landmark },
-  { name: "Tekrarlayan Ödemeler", href: "/finance/recurring", icon: Repeat },
-  { name: "Finansal Raporlar", href: "/reports", icon: BarChart3 },
+  { name: "Finans Paneli", href: "/finance", icon: Wallet, adminOnly: true },
+  { name: "Tekrarlayan Ödemeler", href: "/finance/recurring", icon: Repeat, adminOnly: true },
+  { name: "Finansal Raporlar", href: "/reports", icon: BarChart3, adminOnly: true },
+  { name: "Kullanıcı Yönetimi", href: "/users", icon: UserCog, adminOnly: true },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   return (
     <aside className="hidden md:flex w-64 glass-panel border-r border-slate-800/80 flex-col h-screen sticky top-0 z-30">
@@ -43,6 +44,7 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
+          if (item.adminOnly && user?.role !== "admin") return null;
           const Icon = item.icon;
           const isActive = pathname === item.href;
           return (

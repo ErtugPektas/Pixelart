@@ -43,17 +43,7 @@ export interface Project {
   clients?: Client | null;
 }
 
-export type AccountType = 'bank' | 'cash' | 'credit_card' | 'pos';
-
-export interface FinanceAccount {
-  id: string;
-  name: string;
-  type: AccountType;
-  currency: string;
-  balance: number;
-  is_active: boolean;
-  created_at: string;
-}
+export type AccountType = 'bank' | 'cash' | 'credit_card';
 
 export type CategoryType = 'income' | 'expense';
 
@@ -98,7 +88,7 @@ export type PaymentMethod = 'cash' | 'card' | 'bank_transfer' | 'other';
 export interface FinanceTransaction {
   id: string;
   type: TransactionType;
-  account_id: string;
+  account_id?: string | null;
   to_account_id?: string | null;
   category_id?: string | null;
   client_id?: string | null;
@@ -115,7 +105,6 @@ export interface FinanceTransaction {
   description?: string | null;
   document_url?: string | null;
   created_at: string;
-  finance_accounts?: FinanceAccount | null;
   finance_categories?: FinanceCategory | null;
   clients?: Client | null;
   projects?: Project | null;
@@ -129,7 +118,7 @@ export interface RecurringTransaction {
   id: string;
   title: string;
   type: TransactionType;
-  account_id: string;
+  account_id?: string | null;
   category_id?: string | null;
   client_id?: string | null;
   amount: number;
@@ -142,7 +131,6 @@ export interface RecurringTransaction {
   auto_process: boolean;
   status: RecurrenceStatus;
   created_at: string;
-  finance_accounts?: FinanceAccount | null;
   finance_categories?: FinanceCategory | null;
   clients?: Client | null;
 }
@@ -172,5 +160,5 @@ export interface FinancialSummary {
   total_tax_paid: number;
   pending_receivables: number;
   pending_payables: number;
-  account_balances: FinanceAccount[];
+  account_balances?: any[];
 }

@@ -16,6 +16,8 @@ import {
   VolumeX,
 } from "lucide-react";
 
+import { SupabaseAppointmentRepository } from "@/infrastructure/repositories/SupabaseAppointmentRepository";
+
 export interface NotificationItem {
   id: string;
   title: string;
@@ -26,52 +28,9 @@ export interface NotificationItem {
   link?: string;
 }
 
-const initialNotifications: NotificationItem[] = [
-  {
-    id: "notif-1",
-    title: "Yaklaşan Randevu",
-    message: "Bugün 15:30'da Ahmet Yılmaz (TechCorp) ile Müşteri Sunumu randevunuz var.",
-    type: "appointment",
-    timestamp: "10 dk önce",
-    read: false,
-    link: "/appointments",
-  },
-  {
-    id: "notif-2",
-    title: "Vadesi Gelen Fatura",
-    message: "FAT-2026-004 numaralı 18.500 ₺ tutarındaki faturanın son ödeme günü.",
-    type: "finance",
-    timestamp: "45 dk önce",
-    read: false,
-    link: "/finance",
-  },
-  {
-    id: "notif-3",
-    title: "Proje Güncellemesi",
-    message: "E-Ticaret Mobil Uygulaması projesinde 'UI Tasarımı' aşaması tamamlandı.",
-    type: "project",
-    timestamp: "2 saat önce",
-    read: false,
-    link: "/projects",
-  },
-  {
-    id: "notif-4",
-    title: "Tekrarlayan Ödeme İşlendi",
-    message: "Cloud Server Sunucu Lisansı için 4.200 ₺ gider kaydı oluşturuldu.",
-    type: "finance",
-    timestamp: "Dün",
-    read: true,
-    link: "/finance/recurring",
-  },
-  {
-    id: "notif-5",
-    title: "Sistem Durumu",
-    message: "PixelArt veritabanı otomatik yedeklemesi başarıyla tamamlandı.",
-    type: "system",
-    timestamp: "1 gün önce",
-    read: true,
-  },
-];
+const appointmentRepo = new SupabaseAppointmentRepository();
+
+const initialNotifications: NotificationItem[] = [];
 
 export function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -81,25 +40,51 @@ export function NotificationDropdown() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Load from localStorage or defaults
+  // Load real data
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("pixelart_notifications");
-      if (saved) {
-        setNotifications(JSON.parse(saved));
-      } else {
-        setNotifications(initialNotifications);
+    async function fetchRealNotifications() {
+      try {
+        const apps = await appointmentRepo.getAll();
+
+        const newNotifs: NotificationItem[] = [];
+
+        // Upcoming/Pending appointments
+        apps.filter((a) => a.status === "pending" || a.status === "confirmed").forEach((app) => {
+          newNotifs.push({
+            id: `app-${app.id}`,
+            title: "Randevu Hatırlatması",
+            message: `${app.appointment_date} ${app.appointment_time} tarihinde ${app.clients?.name || 'Müşteri'} ile randevunuz var.`,
+            type: "appointment",
+            timestamp: app.appointment_date,
+            read: false,
+            link: "/appointments",
+          });
+        });
+
+        // Merge with localStorage read states
+        const saved = localStorage.getItem("pixelart_notifications_read");
+        const readIds: string[] = saved ? JSON.parse(saved) : [];
+        
+        const merged = newNotifs.map((n) => ({
+          ...n,
+          read: readIds.includes(n.id)
+        }));
+
+        setNotifications(merged);
+      } catch (e) {
+        console.error("Error fetching notifications:", e);
       }
-    } catch {
-      setNotifications(initialNotifications);
     }
+
+    fetchRealNotifications();
   }, []);
 
-  // Save to localStorage
+  // Save read states to localStorage
   const saveNotifications = (updated: NotificationItem[]) => {
     setNotifications(updated);
     try {
-      localStorage.setItem("pixelart_notifications", JSON.stringify(updated));
+      const readIds = updated.filter((n) => n.read).map((n) => n.id);
+      localStorage.setItem("pixelart_notifications_read", JSON.stringify(readIds));
     } catch (e) {
       console.error(e);
     }

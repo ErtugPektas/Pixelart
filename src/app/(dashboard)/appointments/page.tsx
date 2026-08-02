@@ -22,6 +22,7 @@ import {
   UserPlus,
   Filter,
 } from "lucide-react";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 const appointmentRepo = new SupabaseAppointmentRepository();
 const clientRepo = new SupabaseClientRepository();
@@ -91,6 +92,8 @@ export default function AppointmentsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useRealtimeSync(["appointments", "clients", "projects"], loadData);
 
   // Filtered List - By default hides archived items from main view
   const filteredAppointments = useMemo(() => {

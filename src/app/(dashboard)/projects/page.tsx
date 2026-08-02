@@ -6,6 +6,7 @@ import { SupabaseClientRepository } from "@/infrastructure/repositories/Supabase
 import { Project, Client } from "@/core/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { FolderKanban, Plus, Calendar, User, Trash2 } from "lucide-react";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 const projectRepo = new SupabaseProjectRepository();
 const clientRepo = new SupabaseClientRepository();
@@ -42,6 +43,8 @@ export default function ProjectsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useRealtimeSync(["projects", "clients"], loadData);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
