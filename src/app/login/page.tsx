@@ -20,11 +20,11 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const success = await login(email, password);
-      if (success) {
+      const result = await login(email, password);
+      if (result.success) {
         router.push("/dashboard");
       } else {
-        setError("Geçersiz e-posta veya şifre.");
+        setError(result.error || "Geçersiz e-posta veya şifre.");
       }
     } catch (err) {
       setError("Giriş yapılırken bir hata oluştu.");

@@ -79,15 +79,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{success: boolean, error?: string}> => {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       console.error("Login Error:", error);
       setLoading(false);
-      return false;
+      return { success: false, error: error.message };
     }
-    return true;
+    return { success: true };
   };
 
   const logout = async () => {
