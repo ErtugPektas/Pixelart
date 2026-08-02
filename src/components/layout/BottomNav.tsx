@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard,
   Users,
@@ -21,11 +22,17 @@ const mobileNavItems = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
+  
+  const filteredNavItems = mobileNavItems.filter(item => {
+    if (user?.role !== "admin" && item.href === "/finance") return false;
+    return true;
+  });
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 px-2 py-2 safe-bottom">
       <div className="flex items-center justify-around">
-        {mobileNavItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const isActive =
             pathname === item.href ||

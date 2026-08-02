@@ -27,3 +27,19 @@ export function formatDate(dateString: string): string {
     return dateString;
   }
 }
+
+export function formatDateTime(dateString: string): string {
+  if (!dateString) return "-";
+  try {
+    const d = new Date(dateString);
+    return new Intl.DateTimeFormat("tr-TR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(d);
+  } catch {
+    return dateString;
+  }
+}

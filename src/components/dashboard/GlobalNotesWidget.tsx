@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Send, MessageSquare } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDateTime } from "@/lib/utils";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface Note {
@@ -98,7 +98,7 @@ export function GlobalNotesWidget() {
             return (
               <div key={note.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
                 <span className="text-[10px] text-slate-400 mb-1 px-1">
-                  {note.profiles?.full_name || "Bilinmeyen"} • {formatDate(note.created_at)}
+                  {note.profiles?.full_name || "Bilinmeyen"} • {formatDateTime(note.created_at)}
                 </span>
                 <div 
                   className={`px-4 py-2.5 rounded-2xl max-w-[85%] text-sm shadow-sm ${
