@@ -11,7 +11,7 @@ interface Note {
   id: string;
   content: string;
   created_at: string;
-  created_by: string;
+  user_id: string;
   profiles: {
     full_name: string;
   };
@@ -32,7 +32,7 @@ export function GlobalNotesWidget() {
           id,
           content,
           created_at,
-          created_by,
+          user_id,
           profiles (full_name)
         `)
         .order("created_at", { ascending: true });
@@ -66,7 +66,7 @@ export function GlobalNotesWidget() {
     try {
       await supabase.from("notes").insert({
         content: newNote.trim(),
-        created_by: user.id
+        user_id: user.id
       });
       setNewNote("");
       // loadNotes will be triggered by realtime sync
@@ -94,7 +94,7 @@ export function GlobalNotesWidget() {
           <p className="text-xs text-slate-500 text-center py-4">Henüz not eklenmemiş. İlk notu sen yaz!</p>
         ) : (
           notes.map((note) => {
-            const isMe = note.created_by === user?.id;
+            const isMe = note.user_id === user?.id;
             return (
               <div key={note.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
                 <span className="text-[10px] text-slate-400 mb-1 px-1">

@@ -28,7 +28,8 @@ import {
   CreditCard,
 } from "lucide-react";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
-
+import { useAuth } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 const financeRepo = new SupabaseFinanceRepository();
 const clientRepo = new SupabaseClientRepository();
 const projectRepo = new SupabaseProjectRepository();
@@ -41,6 +42,8 @@ const PAYMENT_LABELS: Record<PaymentMethod, string> = {
 };
 
 export default function FinancePage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [categories, setCategories] = useState<FinanceCategory[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -84,8 +87,12 @@ export default function FinancePage() {
   };
 
   useEffect(() => {
+    if (user && user.role !== "admin") {
+      router.push("/dashboard");
+      return;
+    }
     loadAll();
-  }, []);
+  }, [user, router]);
 
   useRealtimeSync(["finance_transactions", "finance_categories", "clients", "projects"], loadAll);
 
