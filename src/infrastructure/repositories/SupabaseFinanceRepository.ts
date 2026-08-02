@@ -1,167 +1,61 @@
 import { supabase } from "@/lib/supabase";
 import {
   FinanceRepository,
-  TransactionFilter,
-} from "@/core/repositories/FinanceRepository";
-import {
-
-  FinanceCategory,
   FinanceTransaction,
+  FinanceCategory,
   RecurringTransaction,
   FinancialSummary,
+  TransactionFilter,
 } from "@/core/types";
 
-
-
-const MOCK_CATEGORIES: FinanceCategory[] = [
-  { id: "cat1", name: "Tasarım & Proje Gelirleri", type: "income", description: "PixelArt özel tasarım", created_at: new Date().toISOString() },
-  { id: "cat2", name: "Yazılım Lisansları & Tooling", type: "expense", description: "SaaS araçlar", created_at: new Date().toISOString() },
-  { id: "cat3", name: "Operasyonel & Ofis", type: "expense", description: "Ofis kirası & faturalar", created_at: new Date().toISOString() },
-];
-
-const MOCK_TRANSACTIONS: FinanceTransaction[] = [
-  {
-    id: "tx1",
-    type: "income",
-    category_id: "cat1",
-    client_id: "c1",
-    amount: 15000,
-    currency: "TRY",
-    exchange_rate: 1,
-    net_amount: 12500,
-    tax_rate: 20,
-    tax_amount: 2500,
-    payment_method: "bank_transfer",
-    transaction_date: new Date().toISOString().split("T")[0],
-    description: "Kurumsal UI/UX Tasarım Ön Ödemesi",
-    created_at: new Date().toISOString(),
-  },
-];
-
-const MOCK_RECURRING: RecurringTransaction[] = [
-  {
-    id: "rec1",
-    title: "Figma & Adobe Kurumsal Lisans",
-    type: "expense",
-    category_id: "cat2",
-    amount: 2400,
-    currency: "TRY",
-    frequency: "monthly",
-    start_date: new Date().toISOString().split("T")[0],
-    next_due_date: new Date().toISOString().split("T")[0],
-    auto_process: true,
-    status: "active",
-    created_at: new Date().toISOString(),
-  },
-];
-
 export class SupabaseFinanceRepository implements FinanceRepository {
-
-
-  private getLocalTransactions(): FinanceTransaction[] {
-    if (typeof window === "undefined") return MOCK_TRANSACTIONS;
-    const stored = localStorage.getItem("pixelart_transactions");
-    if (!stored) {
-      localStorage.setItem("pixelart_transactions", JSON.stringify(MOCK_TRANSACTIONS));
-      return MOCK_TRANSACTIONS;
-    }
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return MOCK_TRANSACTIONS;
-    }
-  }
-
-  private saveLocalTransactions(list: FinanceTransaction[]) {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("pixelart_transactions", JSON.stringify(list));
-    }
-  }
-
-  private getLocalRecurring(): RecurringTransaction[] {
-    if (typeof window === "undefined") return MOCK_RECURRING;
-    const stored = localStorage.getItem("pixelart_recurring");
-    if (!stored) {
-      localStorage.setItem("pixelart_recurring", JSON.stringify(MOCK_RECURRING));
-      return MOCK_RECURRING;
-    }
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return MOCK_RECURRING;
-    }
-  }
-
-  private saveLocalRecurring(list: RecurringTransaction[]) {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("pixelart_recurring", JSON.stringify(list));
-    }
-  }
-
-
-
   // CATEGORIES
   async getCategories(): Promise<FinanceCategory[]> {
-    try {
-      const { data, error } = await supabase
-        .from("finance_categories")
-        .select("*")
-        .order("name", { ascending: true });
-
-      if (!error && data && data.length > 0) {
-        return data as FinanceCategory[];
-      }
-    } catch (e) {
-      console.warn("Supabase categories warning:", e);
-    }
-    return MOCK_CATEGORIES;
+    const { data, error } = await supabase
+      .from("finance_categories")
+      .select("*")
+      .order("name", { ascending: true });
+    
+    if (error) console.error(error);
+    return (data as FinanceCategory[]) || [];
   }
 
   async createCategory(category: Partial<FinanceCategory>): Promise<FinanceCategory> {
-    const newCat: FinanceCategory = {
-      id: "cat_" + Date.now(),
+    const newCat = {
       name: category.name || "Yeni Kategori",
       type: category.type || "expense",
       parent_id: category.parent_id || null,
       description: category.description || null,
-      created_at: new Date().toISOString(),
     };
-    return newCat;
+    const { data, error } = await supabase.from("finance_categories").insert(newCat).select().single();
+    if (error) throw error;
+    return data as FinanceCategory;
   }
 
   // TRANSACTIONS
   async getTransactions(filter?: TransactionFilter): Promise<FinanceTransaction[]> {
-    try {
-      const { data, error } = await supabase
-        .from("finance_transactions")
-        .select(`
-          *,
-          finance_categories (*),
-          clients (*),
-          projects (*),
-          invoices (*)
-        `)
-        .order("transaction_date", { ascending: false });
+    const { data, error } = await supabase
+      .from("finance_transactions")
+      .select(`
+        *,
+        finance_categories (*),
+        clients (*),
+        projects (*),
+        invoices (*)
+      `)
+      .order("transaction_date", { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        return data as unknown as FinanceTransaction[];
-      }
-    } catch (e) {
-      console.warn("Supabase transactions fetch warning:", e);
-    }
-    return this.getLocalTransactions();
+    if (error) console.error(error);
+    return (data as unknown as FinanceTransaction[]) || [];
   }
 
-  async createTransaction(
-    transaction: Partial<FinanceTransaction>
-  ): Promise<FinanceTransaction> {
+  async createTransaction(transaction: Partial<FinanceTransaction>): Promise<FinanceTransaction> {
     const amount = Number(transaction.amount || 0);
     const taxRate = Number(transaction.tax_rate || 0);
     const taxAmount = (amount * taxRate) / (100 + taxRate);
     const netAmount = amount - taxAmount;
 
-    const newTx: FinanceTransaction = {
-      id: "tx_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
+    const newTx = {
       type: transaction.type || "income",
       category_id: transaction.category_id || null,
       client_id: transaction.client_id || null,
@@ -174,84 +68,37 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       tax_rate: taxRate,
       tax_amount: taxAmount,
       payment_method: transaction.payment_method || "bank_transfer",
-      transaction_date:
-        transaction.transaction_date || new Date().toISOString().split("T")[0],
+      transaction_date: transaction.transaction_date || new Date().toISOString().split("T")[0],
       description: transaction.description || null,
       document_url: transaction.document_url || null,
-      created_at: new Date().toISOString(),
     };
 
-    try {
-      const { data, error } = await supabase
-        .from("finance_transactions")
-        .insert({
-          type: newTx.type,
-          category_id: newTx.category_id,
-          client_id: newTx.client_id,
-          project_id: newTx.project_id,
-          invoice_id: newTx.invoice_id,
-          amount: newTx.amount,
-          currency: newTx.currency,
-          exchange_rate: newTx.exchange_rate,
-          net_amount: newTx.net_amount,
-          tax_rate: newTx.tax_rate,
-          tax_amount: newTx.tax_amount,
-          payment_method: newTx.payment_method,
-          transaction_date: newTx.transaction_date,
-          description: newTx.description,
-          document_url: newTx.document_url,
-        })
-        .select(`*`)
-        .single();
+    const { data, error } = await supabase.from("finance_transactions").insert(newTx).select().single();
+    if (error) throw error;
+    return data as unknown as FinanceTransaction;
+  }
 
-      if (!error && data) {
-        newTx.id = data.id;
-      }
-    } catch (e) {
-      console.warn("Supabase transaction insert warning:", e);
-    }
-
-
-
-    const current = this.getLocalTransactions();
-    const updated = [newTx, ...current];
-    this.saveLocalTransactions(updated);
-    return newTx;
+  async updateTransaction(id: string, transaction: Partial<FinanceTransaction>): Promise<FinanceTransaction> {
+    const { data, error } = await supabase.from("finance_transactions").update(transaction).eq("id", id).select().single();
+    if (error) throw error;
+    return data as unknown as FinanceTransaction;
   }
 
   async deleteTransaction(id: string): Promise<boolean> {
-    const current = this.getLocalTransactions();
-    const tx = current.find((t) => t.id === id);
-    if (tx) {
-
-    }
-    const updated = current.filter((t) => t.id !== id);
-    this.saveLocalTransactions(updated);
+    const { error } = await supabase.from("finance_transactions").delete().eq("id", id);
+    if (error) return false;
     return true;
   }
 
-  // RECURRING TRANSACTIONS
+  // RECURRING
   async getRecurringTransactions(): Promise<RecurringTransaction[]> {
-    try {
-      const { data, error } = await supabase
-        .from("recurring_transactions")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (!error && data && data.length > 0) {
-        return data as RecurringTransaction[];
-      }
-    } catch (e) {
-      console.warn("Supabase recurring transactions fetch warning:", e);
-    }
-    return this.getLocalRecurring();
+    const { data, error } = await supabase.from("recurring_transactions").select("*").order("created_at", { ascending: false });
+    if (error) console.error(error);
+    return (data as RecurringTransaction[]) || [];
   }
 
-  async createRecurringTransaction(
-    recurring: Partial<RecurringTransaction>
-  ): Promise<RecurringTransaction> {
-    const newRec: RecurringTransaction = {
-      id: "rec_" + Date.now(),
+  async createRecurringTransaction(recurring: Partial<RecurringTransaction>): Promise<RecurringTransaction> {
+    const newRec = {
       title: recurring.title || "Tekrarlayan İşlem",
       type: recurring.type || "expense",
       category_id: recurring.category_id || null,
@@ -264,51 +111,22 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       next_due_date: recurring.next_due_date || new Date().toISOString().split("T")[0],
       auto_process: recurring.auto_process ?? true,
       status: recurring.status || "active",
-      created_at: new Date().toISOString(),
     };
 
-    try {
-      await supabase.from("recurring_transactions").insert(newRec);
-    } catch (e) {
-      console.warn("Supabase recurring transaction insert warning:", e);
-    }
-
-    const current = this.getLocalRecurring();
-    const updated = [newRec, ...current];
-    this.saveLocalRecurring(updated);
-    return newRec;
+    const { data, error } = await supabase.from("recurring_transactions").insert(newRec).select().single();
+    if (error) throw error;
+    return data as RecurringTransaction;
   }
 
-  async updateRecurringTransaction(
-    id: string,
-    recurring: Partial<RecurringTransaction>
-  ): Promise<RecurringTransaction> {
-    const current = this.getLocalRecurring();
-    const index = current.findIndex((r) => r.id === id);
-    if (index !== -1) {
-      current[index] = { ...current[index], ...recurring };
-      try {
-        await supabase
-          .from("recurring_transactions")
-          .update(recurring)
-          .eq("id", id);
-      } catch (e) {
-        console.warn("Supabase update recurring warning:", e);
-      }
-      this.saveLocalRecurring(current);
-      return current[index];
-    }
-    throw new Error("Tekrarlayan işlem bulunamadı");
+  async updateRecurringTransaction(id: string, recurring: Partial<RecurringTransaction>): Promise<RecurringTransaction> {
+    const { data, error } = await supabase.from("recurring_transactions").update(recurring).eq("id", id).select().single();
+    if (error) throw error;
+    return data as RecurringTransaction;
   }
 
   async deleteRecurringTransaction(id: string): Promise<boolean> {
-    try {
-      await supabase.from("recurring_transactions").delete().eq("id", id);
-    } catch (e) {
-      console.warn("Supabase delete recurring warning:", e);
-    }
-    const current = this.getLocalRecurring().filter((r) => r.id !== id);
-    this.saveLocalRecurring(current);
+    const { error } = await supabase.from("recurring_transactions").delete().eq("id", id);
+    if (error) return false;
     return true;
   }
 
@@ -316,19 +134,20 @@ export class SupabaseFinanceRepository implements FinanceRepository {
     return;
   }
 
-  // FINANCIAL SUMMARY & ANALYTICS
-  async getFinancialSummary(
-    startDate?: string,
-    endDate?: string
-  ): Promise<FinancialSummary> {
-    const txList = this.getLocalTransactions();
+  // SUMMARY
+  async getFinancialSummary(startDate?: string, endDate?: string): Promise<FinancialSummary> {
+    const { data, error } = await supabase.from("finance_transactions").select("*");
+    if (error) {
+      console.error(error);
+      return { total_income: 0, total_expense: 0, net_profit: 0, total_tax_collected: 0, total_tax_paid: 0, pending_receivables: 0, pending_payables: 0 };
+    }
 
     let totalIncome = 0;
     let totalExpense = 0;
     let totalTaxCollected = 0;
     let totalTaxPaid = 0;
 
-    for (const t of txList) {
+    for (const t of data) {
       const amt = Number(t.amount || 0);
       const tax = Number(t.tax_amount || 0);
 
@@ -347,7 +166,7 @@ export class SupabaseFinanceRepository implements FinanceRepository {
       net_profit: totalIncome - totalExpense,
       total_tax_collected: totalTaxCollected,
       total_tax_paid: totalTaxPaid,
-      pending_receivables: 12000,
+      pending_receivables: 0,
       pending_payables: 0,
     };
   }
