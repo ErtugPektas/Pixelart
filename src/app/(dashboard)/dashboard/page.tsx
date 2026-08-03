@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { GlobalNotesWidget } from "@/components/dashboard/GlobalNotesWidget";
+import { useAuth } from "@/lib/auth";
 import Link from "next/link";
 
 const financeRepo = new SupabaseFinanceRepository();
@@ -31,6 +32,7 @@ const appointmentRepo = new SupabaseAppointmentRepository();
 const clientRepo = new SupabaseClientRepository();
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<FinanceTransaction[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -180,18 +182,22 @@ export default function DashboardPage() {
             <CalendarIcon className="w-4 h-4" />
             <span>Yeni Randevu Oluştur</span>
           </button>
-          <Link
-            href="/finance"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-all cursor-pointer"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>Yeni İşlem Ekle</span>
-          </Link>
+          
+          {user?.role === "admin" && (
+            <Link
+              href="/finance"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-all cursor-pointer"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Yeni İşlem Ekle</span>
+            </Link>
+          )}
         </div>
       </div>
 
       {/* Financial Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {user?.role === "admin" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Total Income */}
         <div className="glass-card p-5 rounded-2xl relative overflow-hidden">
           <div className="flex items-center justify-between">
@@ -257,6 +263,7 @@ export default function DashboardPage() {
         </div>
 
       </div>
+      )}
 
       {/* Şık ve Sade Müşteri Randevu Takvimi Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -414,10 +421,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={`grid grid-cols-1 gap-6 ${user?.role === "admin" ? "lg:grid-cols-2" : ""}`}>
         <GlobalNotesWidget />
 
         {/* Recent Transactions Table */}
+        {user?.role === "admin" && (
         <div className="glass-card p-6 rounded-2xl space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-xs font-bold text-white uppercase tracking-wider">
@@ -476,6 +484,7 @@ export default function DashboardPage() {
             </table>
           </div>
         </div>
+        )}
       </div>
 
       {/* Appointment Modal */}
