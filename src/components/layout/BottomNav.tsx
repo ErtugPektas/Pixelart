@@ -10,6 +10,7 @@ import {
   FolderKanban,
   Wallet,
   BarChart3,
+  UserCog,
 } from "lucide-react";
 
 const mobileNavItems = [
@@ -18,6 +19,7 @@ const mobileNavItems = [
   { name: "Randevu", href: "/appointments", icon: CalendarCheck },
   { name: "Projeler", href: "/projects", icon: FolderKanban },
   { name: "Finans", href: "/finance", icon: Wallet },
+  { name: "Ekip", href: "/users", icon: UserCog },
 ];
 
 export function BottomNav() {
@@ -25,7 +27,7 @@ export function BottomNav() {
   const { user } = useAuth();
   
   const filteredNavItems = mobileNavItems.filter(item => {
-    if (user?.role !== "admin" && item.href === "/finance") return false;
+    if (user?.role !== "admin" && (item.href === "/finance" || item.href === "/users")) return false;
     return true;
   });
 
